@@ -33,17 +33,24 @@ bool chmac(int8 *If, Mac mac) {
   struct ifreq ir;
   int fd, ret;
 
-  fd = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
-  assert(fd > 0);
-
-  strncpy(ir.ifr_ifrn.ifrn_name, (char *)If, (IFNAMSIZ - 1));
-  ir.ifr_ifru.ifru_hwaddr.sa_family = ARPHRD_ETHER;
-  memcpy(ir.ifr_ifru.ifru_hwaddr.sa_data, &mac, 6);
+  fd = socket(AF_INET, SOCK_STREAM, 0);
+  if(fd > 0){
+    perror("Socket creation failed ... retry...");
+    return false;
+  }
+  strncpy(ir.ifr_name, (const char *)If, (IFNAMSIZ - 1));
+  ir.ifr_hwaddr.sa_family = ARPHRD_ETHER;
+  memcpy(ir.ifr_hwaddr.sa_data, mac.addr, 6);
 
   ret = ioctl(fd, SIOCSIFHWADDR, &ir);
   close(fd);
+  
+  if(ret < 0){
+    perror("Failed to change MAC address");
+    return false;
+  }
 
-  return (!ret) ? true : false;
+  return true;
 }
 
 int main(int argc, char *argv[]) {
