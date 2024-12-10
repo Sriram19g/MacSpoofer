@@ -1,4 +1,4 @@
-/* altermac.c */ 
+/* MacSpoofer.c */ 
 #define _GNU_SOURCE
 #include <stdio.h>
 #include <unistd.h>
@@ -6,6 +6,9 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <errno.h>
+#include <stdbool.h>
+#include <sys/ioctl.h>
+#include <net/if.h>
 
 typedef unsigned char int8;
 typedef unsigned short int int16;
@@ -30,6 +33,11 @@ Mac generatenic(){
 
 int main(int argc, char *argv[]) {
     srand(getpid());
+
+    if(argc <2){
+        fprintf(stderr,"Usage: %s INTERFACE\n",*argv);
+        return -1;
+    }
     
     Mac ad=generatenic();
     printf("%llx\n",(long long)ad.addr);
