@@ -29,12 +29,12 @@ Mac generatenic() {
   return mac;
 }
 
-bool chmac(int8 *If, Mac mac) {
+bool chmac(const int8 *If, Mac mac) {
   struct ifreq ir;
   int fd, ret;
 
   fd = socket(AF_INET, SOCK_STREAM, 0);
-  if(fd > 0){
+  if(fd < 0){
     perror("Socket creation failed ... retry...");
     return false;
   }
@@ -55,18 +55,35 @@ bool chmac(int8 *If, Mac mac) {
 
 int main(int argc, char *argv[]) {
   srand(getpid());
-  int8 *If;
+  const int8 *If;
 
   if (argc < 2) {
-    fprintf(stderr, "Usage: %s INTERFACE\n", *argv);
+    fprintf(stderr, "Usage: %s INTERFACE\n", argv[0]);
     return -1;
   } else
-    If = (int8 *)argv[1];
+    If = (const int8 *)argv[1];
+
+  char command[128];
+  snprintf(command,sizeof(command),"sudo ip link set %s down",If);
+
+  if(system(command)!= 0){
+    fprintf(stderr,"Failed to bring interface down\n");
+    return -1;
+  }
 
   Mac ad = generatenic();
   if (chmac(If, ad)) {
-    printf("%llx\n", (long long)ad.addr);
+    printf("MAC address changed to %02x:%02x:%02x:%02x:%02x:%02x\n",ad.addr[0],ad.addr[1],ad.addr[2],ad.addr[3],ad.addr[4],ad.addr[5]); 
+  }
+  else{
+    fprintf(stderr, "Failed to spoof MAC address\n");
   }
 
+  snprintf(command, sizeof(command),"sudo ip link set %s up", If);
+  if(system(command)!=0){
+    fprintf(stderr, "Failed to bring interface up \n");
+    return -1;
+  }
+  printf("Ready to go...");
   return 0;
 }
