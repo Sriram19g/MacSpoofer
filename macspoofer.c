@@ -1,7 +1,5 @@
 /* MacSpoofer.c */
-#define _GNU_SOURCE
 #include <assert.h>
-#include <errno.h>
 #include <net/if.h>
 #include <net/if_arp.h>
 #include <netinet/in.h>
@@ -14,23 +12,20 @@
 #include <unistd.h>
 
 typedef unsigned char int8;
-typedef unsigned short int int16;
-typedef unsigned int int32;
-typedef unsigned long long int int64;
 
 struct s_mac {
-  int64 addr : 48;
+  unsigned char addr[6];
 };
 
 typedef struct s_mac Mac;
 
 Mac generatenic() {
-  int64 a, b;
   Mac mac;
+  mac.addr[0] = 0x02;
+  for (int i = 1; i < 6; i++) {
+    mac.addr[i] = rand() % 256;
+  }
 
-  a = (long)random();
-  b = (long)random();
-  mac.addr = ((a * b) % 281474976710656);
   return mac;
 }
 
@@ -64,8 +59,6 @@ int main(int argc, char *argv[]) {
   Mac ad = generatenic();
   if (chmac(If, ad)) {
     printf("%llx\n", (long long)ad.addr);
-  } else {
-    assert_perror(errno);
   }
 
   return 0;
