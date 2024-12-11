@@ -24,9 +24,30 @@ Mac generatenic() {
   mac.addr[0] = 0x02;
   for (int i = 1; i < 6; i++) {
     mac.addr[i] = rand() % 256;
+    printf("%02x\n",mac.addr[i]);
   }
 
   return mac;
+}
+Mac getUserMac() {
+    Mac mac;
+    printf("Enter MAC address (format: XX:XX:XX:XX:XX:XX): ");
+    int result = scanf(
+        "%2hhx:%2hhx:%2hhx:%2hhx:%2hhx:%2hhx", 
+        &mac.addr[0], &mac.addr[1], &mac.addr[2],
+        &mac.addr[3], &mac.addr[4], &mac.addr[5]
+    );
+    
+    if (result != 6) {
+        fprintf(stderr, "Invalid MAC address format.\n");
+        exit(EXIT_FAILURE);
+    }
+    
+    return mac;
+}
+
+int8 getoui() {
+  return 0; 
 }
 
 bool chmac(const int8 *If, Mac mac) {
@@ -63,6 +84,8 @@ int main(int argc, char *argv[]) {
   } else
     If = (const int8 *)argv[1];
 
+  Mac ad = getUserMac();
+
   char command[128];
   snprintf(command,sizeof(command),"sudo ip link set %s down",If);
 
@@ -71,7 +94,6 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 
-  Mac ad = generatenic();
   if (chmac(If, ad)) {
     printf("MAC address changed to %02x:%02x:%02x:%02x:%02x:%02x\n",ad.addr[0],ad.addr[1],ad.addr[2],ad.addr[3],ad.addr[4],ad.addr[5]); 
   }
