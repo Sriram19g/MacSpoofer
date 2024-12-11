@@ -19,16 +19,43 @@ struct s_mac {
 
 typedef struct s_mac Mac;
 
-Mac generatenic() {
+void parse_oui(const char *oui, unsigned char addr[6]){
+  sscanf(oui,"%2hhx:%2hhx:%2hhx",&addr[0],&addr[1],&addr[2]);
+}
+
+Mac generatemac(const char *filename) {
   Mac mac;
-  mac.addr[0] = 0x02;
-  for (int i = 1; i < 6; i++) {
-    mac.addr[i] = rand() % 256;
-    printf("%02x\n",mac.addr[i]);
+  
+  FILE *file=fopen(filename,"r");
+
+  if(file==NULL){
+    perror("Error while opening OUI file");
+    exit(EXIT_FAILURE);
+  }
+  int line_count = 0;
+  char line[128];
+  while(fgets(line,sizeof(line),file)) {
+    line_count++;
   }
 
+  rewind(file);
+
+  int random_line = rand() % line_count;
+  for(int i=0;i<=random_line;i++) {
+    fgets(line, sizeof(line),file);
+  }
+
+  line[strcspn(line,"\n")]='\0';
+
+  parse_oui(line,mac.addr);
+
+  for (int i = 3; i < 6; i++) {
+    mac.addr[i] = rand() % 256;
+  }
+  fclose(file);
   return mac;
 }
+
 Mac getUserMac() {
     Mac mac;
     printf("Enter MAC address (format: XX:XX:XX:XX:XX:XX): ");
@@ -44,10 +71,6 @@ Mac getUserMac() {
     }
     
     return mac;
-}
-
-int8 getoui() {
-  return 0; 
 }
 
 bool chmac(const int8 *If, Mac mac) {
@@ -83,8 +106,10 @@ int main(int argc, char *argv[]) {
     return -1;
   } else
     If = (const int8 *)argv[1];
+  
+  const char *filename="Database/filtered_db.txt";
 
-  Mac ad = getUserMac();
+  Mac ad = generatemac(filename);
 
   char command[128];
   snprintf(command,sizeof(command),"sudo ip link set %s down",If);
