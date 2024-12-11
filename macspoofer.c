@@ -31,9 +31,7 @@ void set_p_mac(const char *interface) {
   char a[18];
   sprintf(file, "%s/p_mac/%s.txt", my_path, interface);
   struct stat buffer;
-  if (stat(file, &buffer) == 0)
-    return;
-  FILE *mp,*store;
+  FILE *mp;
   char mpath[1024];
 
   snprintf(mpath, sizeof(mpath), "/sys/class/net/%s/address", interface);
@@ -47,17 +45,21 @@ void set_p_mac(const char *interface) {
     exit(EXIT_FAILURE);
   }
   a[strcspn(a, "\n")] = '\0';
-  sscanf(a, "%2hhx:%2hhx:%2hhx:%2hhx:%2hhx:%2hhx", &revert[0], &revert[1], &revert[2], &revert[3], &revert[4], &revert[5]);
-  
-  store=fopen(file,"w");
-  if(store==NULL){
-    perror("Unable to open file for writing");
-    exit(EXIT_FAILURE);
+  sscanf(a, "%2hhx:%2hhx:%2hhx:%2hhx:%2hhx:%2hhx", &revert[0], &revert[1],
+         &revert[2], &revert[3], &revert[4], &revert[5]);
+
+  if (stat(file, &buffer) != 0) {
+    FILE *store;
+    store = fopen(file, "w");
+    if (store == NULL) {
+      perror("Unable to open file for writing");
+      exit(EXIT_FAILURE);
+    }
+    fprintf(store, "%s", a);
+    fclose(store);
   }
 
-  fprintf(store,"%s",a);
   fclose(mp);
-  fclose(store);
   return;
 }
 
@@ -109,6 +111,33 @@ Mac getUserMac() {
   return mac;
 }
 
+Mac revert_mac(const char *interface) {
+  Mac mac;
+  char file[256];
+  char a[18];
+  sprintf(file, "%s/p_mac/%s.txt", my_path, interface);
+  struct stat buffer;
+  if (stat(file, &buffer) != 0) {
+    perror("Your MAC is not yet spoofed..\n");
+    exit(EXIT_FAILURE);
+  }
+  FILE *mp;
+  mp = fopen(file, "r");
+  if (mp == NULL) {
+    perror("Unable to open the class file");
+    exit(EXIT_FAILURE);
+  }
+  if (fgets(a, 18, mp) == NULL) {
+    perror("Error while reading MAC address");
+    exit(EXIT_FAILURE);
+  }
+  a[strcspn(a, "\n")] = '\0';
+  sscanf(a, "%2hhx:%2hhx:%2hhx:%2hhx:%2hhx:%2hhx", &mac.addr[0], &mac.addr[1],
+         &mac.addr[2], &mac.addr[3], &mac.addr[4], &mac.addr[5]);
+
+  return mac;
+}
+
 bool chmac(const int8 *If, Mac mac) {
   struct ifreq ir;
   int fd, ret;
@@ -147,7 +176,7 @@ int main(int argc, char *argv[]) {
 
   const char *filename = "Database/filtered_db.txt";
 
-  Mac ad = generatemac(filename);
+  Mac ad = revert_mac((const char *)If);
 
   char command[128];
   snprintf(command, sizeof(command), "sudo ip link set %s down", If);
@@ -158,12 +187,11 @@ int main(int argc, char *argv[]) {
   }
 
   if (chmac(If, ad)) {
-    printf("Permanent MAC address : %02x:%02x:%02x:%02x:%02x:%02x\n", revert[0],
+    printf("Current MAC address : %02x:%02x:%02x:%02x:%02x:%02x\n", revert[0],
            revert[1], revert[2], revert[3], revert[4], revert[5]);
 
-    printf("New MAC address       : %02x:%02x:%02x:%02x:%02x:%02x\n",
-           ad.addr[0], ad.addr[1], ad.addr[2], ad.addr[3], ad.addr[4],
-           ad.addr[5]);
+    printf("New MAC address     : %02x:%02x:%02x:%02x:%02x:%02x\n", ad.addr[0],
+           ad.addr[1], ad.addr[2], ad.addr[3], ad.addr[4], ad.addr[5]);
   } else {
     fprintf(stderr, "Failed to spoof MAC address\n");
   }
