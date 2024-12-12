@@ -96,11 +96,10 @@ Mac generatemac(const char *filename) {
   return mac;
 }
 
-Mac getUserMac() {
+Mac getUserMac(const char *value) {
   Mac mac;
-  printf("Enter MAC address (format: XX:XX:XX:XX:XX:XX): ");
   int result =
-      scanf("%2hhx:%2hhx:%2hhx:%2hhx:%2hhx:%2hhx", &mac.addr[0], &mac.addr[1],
+      sscanf(value,"%2hhx:%2hhx:%2hhx:%2hhx:%2hhx:%2hhx", &mac.addr[0], &mac.addr[1],
             &mac.addr[2], &mac.addr[3], &mac.addr[4], &mac.addr[5]);
 
   if (result != 6) {
@@ -164,19 +163,57 @@ bool chmac(const int8 *If, Mac mac) {
   return true;
 }
 
+void display_help(const char *program){
+  printf("Usage: sudo %s INTERFACE {-m [value], -r , -p, -h}\n",program);
+  printf("\nOptions:\n");
+  printf(" -m [value]  Set spoofed MAC address manually.\n");
+  printf(" -r          Set Random MAC address\n");
+  printf(" -p          Restore the original MAC address.\n");
+  printf(" -h          Display this help message.\n");
+}
+
 int main(int argc, char *argv[]) {
   srand(getpid());
   const int8 *If;
 
-  if (argc < 2) {
-    fprintf(stderr, "Usage: %s INTERFACE\n", argv[0]);
+  if (argc < 3) {
+    fprintf(stderr, "Error: Too few arguments \n");
+    display_help(argv[0]);
     return -1;
-  } else
-    If = (const int8 *)argv[1];
-
+  } 
+  If = (const int8 *)argv[1];
+  int opt;
   const char *filename = "Database/filtered_db.txt";
+  Mac ad;
+  const char *mac_value=NULL;
+  while((opt = getopt(argc-1,argv+1,"m:rph"))!=-1){
+    switch(opt){
+      case 'm':
+        mac_value=optarg;
+        ad=getUserMac(mac_value);
+        break;
 
-  Mac ad = revert_mac((const char *)If);
+      case 'r':
+        ad=generatemac(filename);
+        break;
+
+      case 'p':
+        ad=revert_mac((const char *)If);
+        break;
+
+      case 'h':
+        display_help(argv[0]);
+        return 0;
+
+      default:
+        fprintf(stderr,"Error: Invalid option.\n");
+        display_help(argv[0]);
+        return 1;
+        
+    }
+  }
+
+  
 
   char command[128];
   snprintf(command, sizeof(command), "sudo ip link set %s down", If);
