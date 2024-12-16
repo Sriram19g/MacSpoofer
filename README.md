@@ -17,7 +17,7 @@ MacSpoofer is a C-based tool designed to spoof the Media Access Control (MAC) ad
 ## Installation
 1. Clone the repository or download the source code:
    ```bash
-   git clone https://github.com/yourusername/MacSpoofer.git
+   git clone https://github.com/Sriram19g/MacSpoofer.git
    cd MacSpoofer
    ```
 2. Compile the code using `gcc`:
